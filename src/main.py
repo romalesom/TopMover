@@ -100,4 +100,21 @@ def run_daily_process():
         logging.info(f"TikTok-Video erfolgreich erstellt: {output_video_filename}")
     except FileNotFoundError as e:
         logging.error(f"Fehler: Musikdatei oder FFmpeg/ImageMagick nicht gefunden. {e}")
-        logging.error("Stellen Sie sicher, dass FFmpeg korrekt installiert und im
+        logging.error("Stellen Sie sicher, dass FFmpeg korrekt installiert und im PATH ist, und die Musikdatei existiert.")
+    except Exception as e:
+        logging.error(f"Ein unerwarteter Fehler bei der Videogenerierung ist aufgetreten: {e}", exc_info=True)
+    finally:
+        # Optional: Aufräumen der generierten Charts nach Videoerstellung
+        logging.info("Schritt 4: Aufräumen der temporären Chart-Bilder...")
+        for chart_file in generated_chart_files:
+            try:
+                os.remove(chart_file)
+                logging.info(f"Gelöscht: {chart_file}")
+            except Exception as e:
+                logging.warning(f"Konnte Chart-Datei nicht löschen {chart_file}: {e}")
+
+
+    logging.info("--- Ende der täglichen TikTok-Generierung ---")
+
+if __name__ == "__main__":
+    run_daily_process()
