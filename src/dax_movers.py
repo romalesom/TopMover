@@ -12,9 +12,9 @@ def get_dax_tickers():
     # Beachten Sie die ".DE" Endung für deutsche Börsenplätze bei Yahoo Finance
     dax_tickers = [
         "ADS.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BMW.DE",
-        "BNR.DE", "CON.DE", "1COV.DE", "DAI.DE", "DTG.DE",
+        "BNR.DE", "CON.DE", "1COV.DE", "DTG.DE",
         "DB1.DE", "RHM.DE", "ENR.DE", "EOAN.DE", "FRE.DE",
-        "HAPA.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE",
+        "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE",
         "LIN.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE",
         "PAH3.DE", "PUM.DE", "QIA.DE", "RWE.DE", "SAP.DE",
         "SRT3.DE", "SY1.DE", "VOW3.DE", "VNA.DE", "ZAL.DE"
@@ -59,8 +59,8 @@ def get_dax_movers(num_movers=5):
             print("Fehler: Keine Daten für die angegebenen Ticker und den Zeitraum gefunden.")
             return None, None, None
 
-        # Wir benötigen die 'Adj Close' Spalte
-        adj_close_data = data['Adj Close']
+        # Wir benötigen die 'Close' Spalte
+        adj_close_data = data['Close']
 
         # Berechnung der prozentualen Veränderung des Vortages
         # Wir nehmen den vorletzten und letzten Handelstag aus den abgerufenen Daten

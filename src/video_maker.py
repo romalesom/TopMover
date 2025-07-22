@@ -1,6 +1,6 @@
 # src/video_maker.py
 
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip # type: ignore
 from moviepy.config import change_settings # Nötig, um ImageMagick Pfad zu setzen
 import os
 import logging
