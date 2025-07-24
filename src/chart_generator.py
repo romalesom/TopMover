@@ -57,15 +57,22 @@ def create_30_day_chart(ticker: str, historical_data: pd.Series, percentage_chan
     fontsize=42, color=line_color, weight='bold')
 
 
-    # Achsen & Labels
+     # Achsen & Labels
     ax.set_xlabel("Date", fontsize=14, color='white')
     ax.set_ylabel("Price (EUR)", fontsize=14, color='white')
-    ax.tick_params(axis='x', colors='white', labelsize=12)
-    ax.tick_params(axis='y', colors='white', labelsize=12)
+    ax.tick_params(axis='x', colors='white', labelsize=12, width=2, length=6)  # Dickere Ticks
+    ax.tick_params(axis='y', colors='white', labelsize=12, width=2, length=6)  # Dickere Ticks
+
+    # Achsenlinien dicker machen
     ax.spines['bottom'].set_color('white')
+    ax.spines['bottom'].set_linewidth(2.5)  # Dicke der unteren Achse
     ax.spines['left'].set_color('white')
-    ax.spines['top'].set_color('black')
-    ax.spines['right'].set_color('black')
+    ax.spines['left'].set_linewidth(2.5)    # Dicke der linken Achse
+    ax.spines['top'].set_color('black')     # Ausgeblendete obere Achse bleibt schwarz
+    ax.spines['top'].set_linewidth(0)
+    ax.spines['right'].set_color('black')   # Ausgeblendete rechte Achse bleibt schwarz
+    ax.spines['right'].set_linewidth(0)
+
     ax.grid(True, linestyle='--', alpha=0.2, color='white')
 
     # X-Ticks reduzieren
