@@ -17,7 +17,7 @@ def get_dax_tickers():
         ["ENR.DE", "FRE.DE", "FME.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE", "LIN.DE"],
         ["LHA.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE", "PAH3.DE", "PUM.DE"],
         ["QIA.DE", "RHM.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SRT3.DE", "SY1.DE", "VOW3.DE"],
-        ["VNA.DE", "ZAL.DE"]
+        ["VNA.DE", "ZAL.DE"] 
     ]
 
     # Die Liste der Ticker abflachen (aus den Unterlisten eine einzige Liste machen)
