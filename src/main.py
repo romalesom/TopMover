@@ -6,20 +6,11 @@ import logging
 import sys
 
 # Importieren der Module
-# Stellen Sie sicher, dass der Pfad stimmt, wenn Sie das Skript von einem anderen Ort ausführen
-# Für diese Struktur (main.py in src/, dax_movers.py und chart_generator.py in src/)
-# sind direkte Importe möglich.
 from dax_movers import get_dax_movers
 from chart_generator import create_30_day_chart
-# from video_maker import create_tiktok_video # moviepy importiert nicht mehr
-
-# Jetzt wird nur noch die Funktion importiert, die wir benötigen, nicht mehr MoviePy-spezifische Dinge
 from video_maker import create_tiktok_video
 
 # --- Konfiguration ---
-# Pfade relativ zum Projekt-Root-Verzeichnis (wo sich 'src' befindet)
-# Wenn Sie dieses Skript direkt aus 'src' ausführen, müssen die Pfade angepasst werden.
-# Es wird empfohlen, 'main.py' vom Projekt-Root aus auszuführen (z.B. 'python src/main.py')
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__)) # src-Ordner
 PROJECT_ROOT = os.path.dirname(PROJECT_ROOT) # Eine Ebene höher zum Projekt-Root
 
@@ -56,29 +47,37 @@ def run_daily_process():
         logging.error("Fehler beim Abrufen der DAX Mover-Daten. Prozess abgebrochen.")
         return
 
-    all_movers = {}
-    for ticker, change in top_gainers.items():
-        all_movers[ticker] = {'change': change, 'type': 'gainer'}
-    for ticker, change in top_losers.items():
-        all_movers[ticker] = {'change': change, 'type': 'loser'}
+    # NEU: Erstelle eine geordnete Liste von Movern, die zuerst Gewinner und dann Verlierer enthält.
+    # Dies stellt die Reihenfolge der Charts im Video sicher.
+    ordered_movers_for_charts = []
+    # Außerdem ein Dictionary für video_maker, das die Infos für die Overlays bereitstellt.
+    movers_info_for_video_maker = {}
 
-    if not all_movers:
+    # Füge Top-Gewinner hinzu (bereits absteigend sortiert nach Performance von get_dax_movers)
+    for ticker, change in top_gainers.items():
+        ordered_movers_for_charts.append((ticker, change, 'gainer'))
+        movers_info_for_video_maker[ticker] = {'change': change, 'type': 'gainer'}
+
+    # Füge Top-Verlierer hinzu (bereits aufsteigend sortiert nach Performance von get_dax_movers)
+    for ticker, change in top_losers.items():
+        ordered_movers_for_charts.append((ticker, change, 'loser'))
+        movers_info_for_video_maker[ticker] = {'change': change, 'type': 'loser'}
+
+    if not ordered_movers_for_charts:
         logging.warning("Keine Mover gefunden. Kein Video wird generiert.")
         return
 
     # 2. Charts generieren
     logging.info("Schritt 2: Charts generieren...")
     generated_chart_files = []
-    # Sortieren, damit Gewinner zuerst kommen, dann Verlierer
-    sorted_movers = sorted(all_movers.items(), key=lambda item: item[1]['type'] == 'loser')
 
-    for ticker, mover_info in sorted_movers:
-        percentage_change = mover_info['change']
+    # Iteriere über die geordnete Liste, um die Charts in der gewünschten Reihenfolge zu erstellen
+    for ticker, percentage_change, mover_type in ordered_movers_for_charts:
         if ticker in historical_chart_data:
             try:
                 chart_filename = create_30_day_chart(ticker, historical_chart_data[ticker], percentage_change, CHARTS_DIR)
                 generated_chart_files.append(chart_filename)
-                logging.info(f"Chart für {ticker} erstellt: {chart_filename}")
+                logging.info(f"Chart für {ticker} ({mover_type}) erstellt: {chart_filename}")
             except Exception as e:
                 logging.error(f"Fehler beim Erstellen des Charts für {ticker}: {e}")
         else:
@@ -90,7 +89,7 @@ def run_daily_process():
 
     # 3. Video generieren
     logging.info("Schritt 3: Video generieren...")
-    os.makedirs(VIDEOS_DIR, exist_ok=True) # Stellen Sie sicher, dass der Videos-Ordner existiert
+    os.makedirs(VIDEOS_DIR, exist_ok=True)
     output_video_filename = os.path.join(VIDEOS_DIR, f"dax_top_movers_{current_date_str}.mp4")
 
     try:
@@ -99,7 +98,7 @@ def run_daily_process():
             output_filepath=output_video_filename,
             background_music_path=BACKGROUND_MUSIC_FILE,
             chart_display_duration=VIDEO_DURATION_PER_CHART,
-            movers_info=all_movers # Übergabe der Mover-Informationen für Text-Overlays
+            movers_info=movers_info_for_video_maker # Übergabe des Dictionaries für Text-Overlays
         )
         logging.info(f"TikTok-Video erfolgreich erstellt: {output_video_filename}")
     except FileNotFoundError as e:
@@ -116,7 +115,6 @@ def run_daily_process():
                 logging.info(f"Gelöscht: {chart_file}")
             except Exception as e:
                 logging.warning(f"Konnte Chart-Datei nicht löschen {chart_file}: {e}")
-
 
     logging.info("--- Ende der täglichen TikTok-Generierung ---")
 
