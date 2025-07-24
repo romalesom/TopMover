@@ -100,16 +100,16 @@ def create_tiktok_video(
             text_x_ticker = (VIDEO_WIDTH - text_w_ticker) // 2
             text_y_ticker = int(VIDEO_HEIGHT * 0.1) + text_h_ticker // 2 # Position anpassen
 
-            cv2.putText(frame_to_write, ticker_name, (text_x_ticker, text_y_ticker),
-                        FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
+            # cv2.putText(frame_to_write, ticker_name, (text_x_ticker, text_y_ticker),
+            #             FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
 
             # Prozentuale Veränderung (etwas darunter zentriert)
             (text_w_change, text_h_change), _ = cv2.getTextSize(display_text_change, FONT, FONT_SCALE_CHANGE, THICKNESS)
             text_x_change = (VIDEO_WIDTH - text_w_change) // 2
             text_y_change = int(VIDEO_HEIGHT * 0.25) + text_h_change // 2 # Position anpassen
 
-            cv2.putText(frame_to_write, display_text_change, (text_x_change, text_y_change),
-                        FONT, FONT_SCALE_CHANGE, text_color, THICKNESS, cv2.LINE_AA)
+            # cv2.putText(frame_to_write, display_text_change, (text_x_change, text_y_change),
+            #             FONT, FONT_SCALE_CHANGE, text_color, THICKNESS, cv2.LINE_AA)
 
             out.write(frame_to_write)
     logging.info("Chart-Clips hinzugefügt.")
