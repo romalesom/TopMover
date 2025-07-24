@@ -4,6 +4,7 @@ Setting up the project:
   3. Install yfinance and pandas: pip install yfinance pandas or python3 - m pip install yfinance pandas
   4. Install matplotlib
   5. Install moviepy
+  6. install opencv-python
      
 Moviepy is a Python lib, using external command tools which makes FFmpeg and ImageMagick mandatory to be installed
   1. Download ffmpeg from web (https://ffmpeg.org/download.html) and add it to the PATH (Mac: brew install ffmpeg). Test the installation with ffmpeg -version
