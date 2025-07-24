@@ -51,19 +51,34 @@ def create_tiktok_video(
         return
 
     # --- Intro-Clip erstellen ---
-    intro_text = f"DAX Top Mover vom {datetime.now().strftime('%d.%m.%Y')}"
-    intro_duration_frames = int(3 * FPS) # 3 Sekunden Intro
+    line1 = "DAX Top Mover"
+    line2 = f"of {datetime.now().strftime('%d.%m.%Y')}"
+    intro_duration_frames = int(3 * FPS)  # 3 Sekunden Intro
 
-    # Erstelle einen schwarzen Hintergrund für das Intro
+    # Schwarzer Hintergrund für das Intro
     intro_frame = np.zeros((VIDEO_HEIGHT, VIDEO_WIDTH, 3), dtype=np.uint8)
-    
-    # Text zentrieren
-    (text_w, text_h), baseline = cv2.getTextSize(intro_text, FONT, FONT_SCALE_TITLE, THICKNESS)
-    text_x = (VIDEO_WIDTH - text_w) // 2
-    text_y = (VIDEO_HEIGHT + text_h) // 2
 
-    cv2.putText(intro_frame, intro_text, (text_x, text_y), FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
+    # Textgrößen berechnen
+    (text_w1, text_h1), _ = cv2.getTextSize(line1, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
+    (text_w2, text_h2), _ = cv2.getTextSize(line2, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
 
+    # Abstand und Gesamthöhe
+    line_spacing = int(text_h1 * 1.5)
+    total_text_height = text_h1 + line_spacing
+
+    # Start-Y für vertikale Zentrierung
+    start_y = (VIDEO_HEIGHT - total_text_height) // 2
+
+    # Positionen berechnen (horizontal zentriert)
+    x1 = (VIDEO_WIDTH - text_w1) // 2
+    y1 = start_y + text_h1  # y-Koordinate ist bei Baseline, daher + text_h1
+
+    x2 = (VIDEO_WIDTH - text_w2) // 2
+    y2 = y1 + line_spacing
+
+    # Zeilen zeichnen
+    cv2.putText(intro_frame, line1, (x1, y1), FONT, FONT_SCALE_TITLE * 0.5, WHITE, THICKNESS, cv2.LINE_AA)
+    cv2.putText(intro_frame, line2, (x2, y2), FONT, FONT_SCALE_TITLE * 0.5, WHITE, THICKNESS, cv2.LINE_AA)
     for _ in range(intro_duration_frames):
         out.write(intro_frame)
     logging.info("Intro-Clip hinzugefügt.")
@@ -82,50 +97,65 @@ def create_tiktok_video(
         # Bild auf Video-Dimensionen anpassen (resizen)
         chart_image_resized = cv2.resize(chart_image, (VIDEO_WIDTH, VIDEO_HEIGHT))
 
-        # Ticker aus Dateipfad extrahieren (z.B. "BAS_30_day_chart.png" -> "BAS")
-        base_name = os.path.basename(chart_path)
-        ticker_name = base_name.split('_')[0]
+        # # Ticker aus Dateipfad extrahieren (z.B. "BAS_30_day_chart.png" -> "BAS")
+        # base_name = os.path.basename(chart_path)
+        # ticker_name = base_name.split('_')[0]
 
-        # Informationen für den Text-Overlay abrufen
-        percentage_change = movers_info.get(ticker_name, {}).get('change', 0.0)
-        display_text_change = f"{percentage_change:.2f}%"
-        text_color = GREEN if percentage_change >= 0 else RED
+        # # Informationen für den Text-Overlay abrufen
+        # percentage_change = movers_info.get(ticker_name, {}).get('change', 0.0)
+        # display_text_change = f"{percentage_change:.2f}%"
+        # text_color = GREEN if percentage_change >= 0 else RED
 
         # Füge Text-Overlays zu jedem Frame hinzu
         for frame_num in range(frames_per_chart):
             frame_to_write = chart_image_resized.copy() # Kopie, um Text hinzuzufügen
 
             # Ticker-Text (oben zentriert)
-            (text_w_ticker, text_h_ticker), _ = cv2.getTextSize(ticker_name, FONT, FONT_SCALE_TITLE, THICKNESS)
-            text_x_ticker = (VIDEO_WIDTH - text_w_ticker) // 2
-            text_y_ticker = int(VIDEO_HEIGHT * 0.1) + text_h_ticker // 2 # Position anpassen
+            # (text_w_ticker, text_h_ticker), _ = cv2.getTextSize(ticker_name, FONT, FONT_SCALE_TITLE, THICKNESS)
+            # text_x_ticker = (VIDEO_WIDTH - text_w_ticker) // 2
+            # text_y_ticker = int(VIDEO_HEIGHT * 0.1) + text_h_ticker // 2 # Position anpassen
 
-            cv2.putText(frame_to_write, ticker_name, (text_x_ticker, text_y_ticker),
-                        FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
+            # cv2.putText(frame_to_write, ticker_name, (text_x_ticker, text_y_ticker),
+            #             FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
 
             # Prozentuale Veränderung (etwas darunter zentriert)
-            (text_w_change, text_h_change), _ = cv2.getTextSize(display_text_change, FONT, FONT_SCALE_CHANGE, THICKNESS)
-            text_x_change = (VIDEO_WIDTH - text_w_change) // 2
-            text_y_change = int(VIDEO_HEIGHT * 0.25) + text_h_change // 2 # Position anpassen
+            # (text_w_change, text_h_change), _ = cv2.getTextSize(display_text_change, FONT, FONT_SCALE_CHANGE, THICKNESS)
+            # text_x_change = (VIDEO_WIDTH - text_w_change) // 2
+            # text_y_change = int(VIDEO_HEIGHT * 0.25) + text_h_change // 2 # Position anpassen
 
-            cv2.putText(frame_to_write, display_text_change, (text_x_change, text_y_change),
-                        FONT, FONT_SCALE_CHANGE, text_color, THICKNESS, cv2.LINE_AA)
+            # cv2.putText(frame_to_write, display_text_change, (text_x_change, text_y_change),
+            #             FONT, FONT_SCALE_CHANGE, text_color, THICKNESS, cv2.LINE_AA)
 
             out.write(frame_to_write)
     logging.info("Chart-Clips hinzugefügt.")
 
     # --- Outro-Clip erstellen ---
-    outro_text = "Tägliche DAX-Updates! Folge uns!"
-    outro_duration_frames = int(3 * FPS) # 3 Sekunden Outro
-    
+    line1 = "Daily DAX-Updates!"
+    line2 = "Follow us!"
+    outro_duration_frames = int(3 * FPS)  # 3 Sekunden Outro
+
     outro_frame = np.zeros((VIDEO_HEIGHT, VIDEO_WIDTH, 3), dtype=np.uint8)
 
-    # Text zentrieren
-    (text_w, text_h), baseline = cv2.getTextSize(outro_text, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS) # Etwas kleinerer Text
-    text_x = (VIDEO_WIDTH - text_w) // 2
-    text_y = (VIDEO_HEIGHT + text_h) // 2
+    # Textgrößen berechnen
+    (text_w1, text_h1), _ = cv2.getTextSize(line1, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
+    (text_w2, text_h2), _ = cv2.getTextSize(line2, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
 
-    cv2.putText(outro_frame, outro_text, (text_x, text_y), FONT, FONT_SCALE_TITLE * 0.8, WHITE, THICKNESS, cv2.LINE_AA)
+    # Y-Startpunkt mittig mit etwas Abstand
+    line_spacing = int(text_h1 * 1.5)
+    total_text_height = line_spacing + text_h2
+    start_y = (VIDEO_HEIGHT - total_text_height) // 2
+
+    # Zeile 1 zentrieren
+    x1 = (VIDEO_WIDTH - text_w1) // 2
+    y1 = start_y
+
+    # Zeile 2 zentrieren
+    x2 = (VIDEO_WIDTH - text_w2) // 2
+    y2 = y1 + line_spacing
+
+    # Texte zeichnen
+    cv2.putText(outro_frame, line1, (x1, y1), FONT, FONT_SCALE_TITLE * 0.8, WHITE, THICKNESS, cv2.LINE_AA)
+    cv2.putText(outro_frame, line2, (x2, y2), FONT, FONT_SCALE_TITLE * 0.8, WHITE, THICKNESS, cv2.LINE_AA)
 
     for _ in range(outro_duration_frames):
         out.write(outro_frame)
