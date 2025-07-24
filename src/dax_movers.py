@@ -13,11 +13,11 @@ def get_dax_tickers():
     # Präsentiert als eine "Matrix" (Liste von Listen) für bessere Lesbarkeit im Code.
     dax_tickers_matrix = [
         ["ADS.DE", "AIR.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BEI.DE", "BMW.DE", "BNR.DE"],
-        ["CON.DE", "1COV.DE", "DB1.DE", "DBK.DE", "DTG.DE", "DTE.DE", "DPW.DE", "EOAN.DE"],
+        ["CON.DE", "1COV.DE", "DB1.DE", "DBK.DE", "DTG.DE", "DTE.DE", "DPWA.DU", "EOAN.DE"],
         ["ENR.DE", "FRE.DE", "FME.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE", "LIN.DE"],
         ["LHA.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE", "PAH3.DE", "PUM.DE"],
         ["QIA.DE", "RHM.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SRT3.DE", "SY1.DE", "VOW3.DE"],
-        ["VNA.DE", "ZAL.DE"]
+        ["VNA.DE", "ZAL.DE"] 
     ]
 
     # Die Liste der Ticker abflachen (aus den Unterlisten eine einzige Liste machen)
