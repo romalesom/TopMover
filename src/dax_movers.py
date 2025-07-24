@@ -11,13 +11,12 @@ def get_dax_tickers():
     # Aktuelle DAX 40 Ticker-Symbole (Stand Mitte 2025)
     # Beachten Sie die ".DE" Endung für deutsche Börsenplätze bei Yahoo Finance
     dax_tickers = [
-        "ADS.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BMW.DE",
-        "BNR.DE", "CON.DE", "1COV.DE", "DTG.DE",
-        "DB1.DE", "RHM.DE", "ENR.DE", "EOAN.DE", "FRE.DE",
-        "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE",
-        "LIN.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE",
-        "PAH3.DE", "PUM.DE", "QIA.DE", "RWE.DE", "SAP.DE",
-        "SRT3.DE", "SY1.DE", "VOW3.DE", "VNA.DE", "ZAL.DE"
+        "ADS.DE", "AIR.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BEI.DE", "BMW.DE", "BNR.DE",
+        "CON.DE", "1COV.DE", "DB1.DE", "DBK.DE", "DTG.DE", "DTE.DE", "DPW.DE", "EOAN.DE",
+        "ENR.DE", "FRE.DE", "FME.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE", "LIN.DE",
+        "LHA.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE", "PAH3.DE", "PUM.DE",
+        "QIA.DE", "RHM.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SRT3.DE", "SY1.DE", "VOW3.DE",
+        "VNA.DE", "ZAL.DE"
     ]
     # Einige Ticker, die je nach Quelle variieren können, hier als Beispiel
     # Fügen Sie hier alle 40 hinzu, wenn die vollständige Liste verfügbar ist.

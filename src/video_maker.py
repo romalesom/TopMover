@@ -1,26 +1,29 @@
 # src/video_maker.py
 
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip # type: ignore
-from moviepy.config import change_settings # Nötig, um ImageMagick Pfad zu setzen
+import cv2
+import numpy as np
 import os
 import logging
 from datetime import datetime
+import subprocess # Für FFmpeg Aufrufe
 
-# --- Konfiguration für MoviePy und ImageMagick ---
-# Stellen Sie sicher, dass ImageMagick installiert ist
-# und der Pfad hier korrekt gesetzt ist, falls er nicht in Ihrem System PATH liegt.
-# Beispiel (Windows): change_settings({"IMAGEMAGICK_BINARY": r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"})
-# Beispiel (Linux/macOS): change_settings({"IMAGEMAGICK_BINARY": "/opt/ImageMagick/bin/magick"})
-# Wenn ImageMagick im System PATH ist, ist diese Zeile oft nicht nötig.
-# Prüfen Sie Ihre ImageMagick Installation mit 'magick -version' im Terminal.
-try:
-    # Versucht, ImageMagick zu finden. Wenn nicht gefunden, kann ein Fehler auftreten.
-    # remove this line if you have issues with ImageMagick and set the path explicitly above
-    # Or install ImageMagick and ensure it's in your system's PATH
-    pass
-except Exception as e:
-    logging.warning(f"ImageMagick Konfiguration fehlgeschlagen: {e}. Versuche ohne explizite Pfadangabe.")
+# --- Konfiguration ---
+# Video-Dimensionen für TikTok (Hochformat)
+VIDEO_WIDTH = 1080
+VIDEO_HEIGHT = 1920
+FPS = 24 # Bilder pro Sekunde für das Ausgabevideo
 
+# Schriftart und -größe für OpenCV-Text
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+FONT_SCALE_TITLE = 3.0
+FONT_SCALE_CHANGE = 2.5
+THICKNESS = 4 # Linienstärke des Textes
+
+# Farben (BGR-Format für OpenCV)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0) # BGR
+RED = (0, 0, 255)   # BGR
 
 def create_tiktok_video(
     chart_image_paths: list,
@@ -32,36 +35,52 @@ def create_tiktok_video(
     """
     Erstellt ein TikTok-kompatibles Video aus einer Liste von Chart-Bildern,
     fügt Text-Overlays hinzu und integriert Hintergrundmusik.
-
-    Args:
-        chart_image_paths (list): Liste der Dateipfade zu den generierten Chart-Bildern.
-        output_filepath (str): Der vollständige Pfad und Dateiname für das Ausgabevideo (.mp4).
-        background_music_path (str): Der Pfad zur Hintergrundmusik-Datei.
-        chart_display_duration (int): Wie lange jeder Chart im Video angezeigt werden soll (in Sekunden).
-        movers_info (dict): Informationen über die Mover zur Anzeige der prozentualen Veränderung.
+    Verwendet OpenCV für die Videogenerierung und subprocess für FFmpeg-Audio-Merging.
     """
-    logging.info(f"Starte Videogenerierung. Anzahl Charts: {len(chart_image_paths)}")
+    logging.info(f"Starte Videogenerierung mit OpenCV. Anzahl Charts: {len(chart_image_paths)}")
 
-    # Video-Dimensionen für TikTok (Hochformat)
-    VIDEO_WIDTH = 1080
-    VIDEO_HEIGHT = 1920
+    # Temporäre Datei für Video ohne Audio
+    temp_video_filepath = output_filepath.replace(".mp4", "_no_audio.mp4")
 
-    final_clips = []
-    current_time = 0 # Um die Startzeit für Text-Clips zu verfolgen
+    # VideoWriter initialisieren
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Codec für .mp4
+    out = cv2.VideoWriter(temp_video_filepath, fourcc, FPS, (VIDEO_WIDTH, VIDEO_HEIGHT))
 
-    # --- Intro-Clip ---
+    if not out.isOpened():
+        logging.error(f"Fehler: VideoWriter konnte nicht geöffnet werden für {temp_video_filepath}")
+        return
+
+    # --- Intro-Clip erstellen ---
     intro_text = f"DAX Top Mover vom {datetime.now().strftime('%d.%m.%Y')}"
-    intro_clip = TextClip(intro_text, fontsize=80, color='white', bg_color='black',
-                          size=(VIDEO_WIDTH, VIDEO_HEIGHT))
-    intro_clip = intro_clip.set_duration(3).set_position('center') # 3 Sekunden Intro
-    final_clips.append(intro_clip)
-    current_time += 3
+    intro_duration_frames = int(3 * FPS) # 3 Sekunden Intro
+
+    # Erstelle einen schwarzen Hintergrund für das Intro
+    intro_frame = np.zeros((VIDEO_HEIGHT, VIDEO_WIDTH, 3), dtype=np.uint8)
+    
+    # Text zentrieren
+    (text_w, text_h), baseline = cv2.getTextSize(intro_text, FONT, FONT_SCALE_TITLE, THICKNESS)
+    text_x = (VIDEO_WIDTH - text_w) // 2
+    text_y = (VIDEO_HEIGHT + text_h) // 2
+
+    cv2.putText(intro_frame, intro_text, (text_x, text_y), FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
+
+    for _ in range(intro_duration_frames):
+        out.write(intro_frame)
+    logging.info("Intro-Clip hinzugefügt.")
 
     # --- Chart-Clips ---
+    frames_per_chart = int(chart_display_duration * FPS)
+
     for i, chart_path in enumerate(chart_image_paths):
-        # Bild-Clip erstellen
-        chart_clip = ImageClip(chart_path, duration=chart_display_duration)
-        chart_clip = chart_clip.resize(newsize=(VIDEO_WIDTH, VIDEO_HEIGHT)) # Sicherstellen, dass es die volle Größe ausfüllt
+        logging.info(f"Verarbeite Chart: {chart_path}")
+        # Bild laden
+        chart_image = cv2.imread(chart_path)
+        if chart_image is None:
+            logging.error(f"Fehler: Bild konnte nicht geladen werden von {chart_path}. Überspringe.")
+            continue
+
+        # Bild auf Video-Dimensionen anpassen (resizen)
+        chart_image_resized = cv2.resize(chart_image, (VIDEO_WIDTH, VIDEO_HEIGHT))
 
         # Ticker aus Dateipfad extrahieren (z.B. "BAS_30_day_chart.png" -> "BAS")
         base_name = os.path.basename(chart_path)
@@ -70,55 +89,102 @@ def create_tiktok_video(
         # Informationen für den Text-Overlay abrufen
         percentage_change = movers_info.get(ticker_name, {}).get('change', 0.0)
         display_text_change = f"{percentage_change:.2f}%"
-        text_color = 'green' if percentage_change >= 0 else 'red'
+        text_color = GREEN if percentage_change >= 0 else RED
 
-        # Text-Overlay für Aktie und prozentuale Veränderung
-        ticker_text_clip = TextClip(ticker_name, fontsize=100, color='white', font='Arial-Bold',
-                                    stroke_color='black', stroke_width=2)
-        ticker_text_clip = ticker_text_clip.set_position(("center", VIDEO_HEIGHT * 0.1)).set_duration(chart_display_duration)
+        # Füge Text-Overlays zu jedem Frame hinzu
+        for frame_num in range(frames_per_chart):
+            frame_to_write = chart_image_resized.copy() # Kopie, um Text hinzuzufügen
 
-        change_text_clip = TextClip(display_text_change, fontsize=80, color=text_color, font='Arial-Bold',
-                                    stroke_color='black', stroke_width=2)
-        change_text_clip = change_text_clip.set_position(("center", VIDEO_HEIGHT * 0.25)).set_duration(chart_display_duration)
+            # Ticker-Text (oben zentriert)
+            (text_w_ticker, text_h_ticker), _ = cv2.getTextSize(ticker_name, FONT, FONT_SCALE_TITLE, THICKNESS)
+            text_x_ticker = (VIDEO_WIDTH - text_w_ticker) // 2
+            text_y_ticker = int(VIDEO_HEIGHT * 0.1) + text_h_ticker // 2 # Position anpassen
 
-        # Kombiniere Chart-Clip mit Text-Overlays
-        composite_chart_clip = CompositeVideoClip([
-            chart_clip,
-            ticker_text_clip,
-            change_text_clip
-        ], size=(VIDEO_WIDTH, VIDEO_HEIGHT))
+            cv2.putText(frame_to_write, ticker_name, (text_x_ticker, text_y_ticker),
+                        FONT, FONT_SCALE_TITLE, WHITE, THICKNESS, cv2.LINE_AA)
 
-        final_clips.append(composite_chart_clip)
-        current_time += chart_display_duration
+            # Prozentuale Veränderung (etwas darunter zentriert)
+            (text_w_change, text_h_change), _ = cv2.getTextSize(display_text_change, FONT, FONT_SCALE_CHANGE, THICKNESS)
+            text_x_change = (VIDEO_WIDTH - text_w_change) // 2
+            text_y_change = int(VIDEO_HEIGHT * 0.25) + text_h_change // 2 # Position anpassen
 
-    # --- Outro-Clip ---
+            cv2.putText(frame_to_write, display_text_change, (text_x_change, text_y_change),
+                        FONT, FONT_SCALE_CHANGE, text_color, THICKNESS, cv2.LINE_AA)
+
+            out.write(frame_to_write)
+    logging.info("Chart-Clips hinzugefügt.")
+
+    # --- Outro-Clip erstellen ---
     outro_text = "Tägliche DAX-Updates! Folge uns!"
-    outro_clip = TextClip(outro_text, fontsize=70, color='white', bg_color='black',
-                         size=(VIDEO_WIDTH, VIDEO_HEIGHT))
-    outro_clip = outro_clip.set_duration(3).set_position('center') # 3 Sekunden Outro
-    final_clips.append(outro_clip)
-    current_time += 3
+    outro_duration_frames = int(3 * FPS) # 3 Sekunden Outro
+    
+    outro_frame = np.zeros((VIDEO_HEIGHT, VIDEO_WIDTH, 3), dtype=np.uint8)
 
-    # Kombiniere alle Clips
-    final_video = concatenate_videoclips(final_clips)
+    # Text zentrieren
+    (text_w, text_h), baseline = cv2.getTextSize(outro_text, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS) # Etwas kleinerer Text
+    text_x = (VIDEO_WIDTH - text_w) // 2
+    text_y = (VIDEO_HEIGHT + text_h) // 2
 
-    # Hintergrundmusik hinzufügen
+    cv2.putText(outro_frame, outro_text, (text_x, text_y), FONT, FONT_SCALE_TITLE * 0.8, WHITE, THICKNESS, cv2.LINE_AA)
+
+    for _ in range(outro_duration_frames):
+        out.write(outro_frame)
+    logging.info("Outro-Clip hinzugefügt.")
+
+    out.release() # VideoWriter schließen
+    logging.info(f"Temporäres Video ohne Audio erstellt: {temp_video_filepath}")
+
+    # --- Hintergrundmusik hinzufügen mit FFmpeg ---
     try:
-        audio_clip = AudioFileClip(background_music_path)
-        # Die Musik muss auf die Länge des Videos zugeschnitten oder geloopt werden
-        if audio_clip.duration < final_video.duration:
-            # Loop-Musik, wenn kürzer als Video
-            audio_clip = audio_clip.loop(duration=final_video.duration)
-        else:
-            # Schneide Musik, wenn länger als Video
-            audio_clip = audio_clip.subclip(0, final_video.duration)
+        if not os.path.exists(background_music_path):
+            raise FileNotFoundError(f"Hintergrundmusikdatei nicht gefunden: {background_music_path}")
 
-        final_video = final_video.set_audio(audio_clip)
-        logging.info(f"Hintergrundmusik '{os.path.basename(background_music_path)}' hinzugefügt.")
+        logging.info(f"Füge Hintergrundmusik '{os.path.basename(background_music_path)}' hinzu...")
+
+        # FFmpeg-Befehl zum Kombinieren von Video und Audio
+        # -i für Eingabedateien, -map um Spuren auszuwählen, -c:v Videocodec, -c:a Audiocodec, -shortest kürzere Dauer
+        # -y überschreibt Ausgabedatei, falls vorhanden
+        ffmpeg_command = [
+            'ffmpeg',
+            '-i', temp_video_filepath,
+            '-i', background_music_path,
+            '-map', '0:v:0', # Video-Stream von erster Eingabe
+            '-map', '1:a:0', # Audio-Stream von zweiter Eingabe
+            '-c:v', 'copy',  # Video nicht rekodieren (schneller, keine Qualitätsverlust)
+            '-c:a', 'aac',   # Audio zu AAC kodieren
+            '-b:a', '192k',  # Audio-Bitrate
+            '-shortest',     # Beendet das Video, wenn die kürzere Spur endet
+            '-y',            # Überschreibt Ausgabedatei ohne Nachfrage
+            output_filepath
+        ]
+        
+        # subprocess.run wird den Befehl ausführen und auf dessen Beendigung warten
+        # capture_output=True, text=True hilft beim Debugging
+        result = subprocess.run(ffmpeg_command, capture_output=True, text=True, check=True)
+        
+        logging.info(f"FFmpeg stdout: {result.stdout}")
+        if result.stderr:
+            logging.info(f"FFmpeg stderr: {result.stderr}") # FFmpeg gibt viel Info nach stderr aus
+
+        logging.info(f"Hintergrundmusik '{os.path.basename(background_music_path)}' erfolgreich hinzugefügt.")
+
+    except FileNotFoundError:
+        logging.error("Fehler: FFmpeg wurde nicht gefunden. Stellen Sie sicher, dass FFmpeg installiert und im System PATH ist.")
+        logging.warning("Video wurde ohne Musik erstellt.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"FFmpeg-Fehler beim Hinzufügen der Musik: {e}")
+        logging.error(f"FFmpeg stdout: {e.stdout}")
+        logging.error(f"FFmpeg stderr: {e.stderr}")
+        logging.warning("Video wurde ohne Musik erstellt.")
     except Exception as e:
-        logging.warning(f"Konnte Hintergrundmusik nicht hinzufügen: {e}. Video wird ohne Musik erstellt.")
+        logging.warning(f"Konnte Hintergrundmusik nicht hinzufügen (anderer Fehler): {e}. Video wird ohne Musik erstellt.")
 
-    # Video exportieren
-    logging.info(f"Exportiere Video nach: {output_filepath}")
-    final_video.write_videofile(output_filepath, fps=24, codec="libx264", audio_codec="aac")
-    logging.info("Video-Export abgeschlossen.")
+    # Temporäre Videodatei ohne Audio löschen
+    # if os.path.exists(temp_video_filepath):
+    #     try:
+    #         os.remove(temp_video_filepath)
+    #         logging.info(f"Temporäre Datei gelöscht: {temp_video_filepath}")
+    #     except Exception as e:
+    #         logging.warning(f"Konnte temporäre Videodatei nicht löschen {temp_video_filepath}: {e}")
+
+    logging.info(f"Video-Export abgeschlossen: {output_filepath}")
