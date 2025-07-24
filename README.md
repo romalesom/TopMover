@@ -13,7 +13,7 @@ Moviepy is a Python lib, using external command tools which makes FFmpeg and Ima
   2. Download ImmageMagick from web (<https://imagemagick.org/script/download.php>) and add it to PATH. Test the installation with magick -version
 
 Git Commands:
-Neuen branch erstellen zum ausprobieren: git checkout -b "name"
+Neuen branch erstellen zum ausprobieren: git checkout -b dein_branch_name
 Branch hochladen: 1. git add .
                   2. git commit -m "nachricht"
-                  3. git push origin <dein_branch>
+                  3. git push origin dein_branch_name
