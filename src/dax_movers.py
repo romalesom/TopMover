@@ -8,19 +8,25 @@ def get_dax_tickers():
     Beachten Sie: Diese Liste muss manuell aktualisiert werden,
     wenn sich die Zusammensetzung des DAX ändert.
     """
-    # Aktuelle DAX 40 Ticker-Symbole (Stand Mitte 2025)
-    # Beachten Sie die ".DE" Endung für deutsche Börsenplätze bei Yahoo Finance
-    dax_tickers = [
-        "ADS.DE", "AIR.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BEI.DE", "BMW.DE", "BNR.DE",
-        "CON.DE", "1COV.DE", "DB1.DE", "DBK.DE", "DTG.DE", "DTE.DE", "DPW.DE", "EOAN.DE",
-        "ENR.DE", "FRE.DE", "FME.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE", "LIN.DE",
-        "LHA.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE", "PAH3.DE", "PUM.DE",
-        "QIA.DE", "RHM.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SRT3.DE", "SY1.DE", "VOW3.DE",
-        "VNA.DE", "ZAL.DE"
+    # Aktuelle DAX 40 Ticker-Symbole (Stand Juli 2025)
+    # Quelle: Deutsche Börse / Finanzportale. `.DE` für XETRA-Handel bei Yahoo Finance.
+    # Präsentiert als eine "Matrix" (Liste von Listen) für bessere Lesbarkeit im Code.
+    dax_tickers_matrix = [
+        ["ADS.DE", "AIR.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BEI.DE", "BMW.DE", "BNR.DE"],
+        ["CON.DE", "1COV.DE", "DB1.DE", "DBK.DE", "DTG.DE", "DTE.DE", "DPW.DE", "EOAN.DE"],
+        ["ENR.DE", "FRE.DE", "FME.DE", "HEI.DE", "HEN3.DE", "IFX.DE", "JEN.DE", "LIN.DE"],
+        ["LHA.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE", "P911.DE", "PAH3.DE", "PUM.DE"],
+        ["QIA.DE", "RHM.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SRT3.DE", "SY1.DE", "VOW3.DE"],
+        ["VNA.DE", "ZAL.DE"]
     ]
-    # Einige Ticker, die je nach Quelle variieren können, hier als Beispiel
-    # Fügen Sie hier alle 40 hinzu, wenn die vollständige Liste verfügbar ist.
-    # Für dieses Beispiel sind 35 Ticker enthalten.
+
+    # Die Liste der Ticker abflachen (aus den Unterlisten eine einzige Liste machen)
+    dax_tickers = [ticker for sublist in dax_tickers_matrix for ticker in sublist]
+
+    # Überprüfung der Anzahl der Ticker
+    if len(dax_tickers) != 40:
+        print(f"Warnung: Die DAX-Tickerliste enthält {len(dax_tickers)} Einträge, nicht 40. Bitte prüfen Sie die Aktualität.")
+
     return dax_tickers
 
 def get_dax_movers(num_movers=5):
@@ -44,13 +50,7 @@ def get_dax_movers(num_movers=5):
     end_date_month = today # Bis heute, damit der letzte Kurs der Vortag ist
 
     # Daten für alle DAX-Aktien abrufen
-    # Nur 'Adj Close' und 'Volume' sind Standard, aber wir brauchen nur 'Adj Close'
     try:
-        # Laden der Daten für den Vortag und für die Monatsansicht
-        # Wir laden alle Daten einmal und filtern dann.
-        # periods "1d" würde nur den letzten Tag holen, wir brauchen aber 2 Tage für die Berechnung
-        # und zusätzlich 30 Tage für den Chart. Daher holen wir einen längeren Zeitraum
-        # und wählen die benötigten Tage aus.
         data = yf.download(dax_tickers, start=start_date_month.strftime('%Y-%m-%d'),
                            end=end_date_month.strftime('%Y-%m-%d'))
 
@@ -62,8 +62,6 @@ def get_dax_movers(num_movers=5):
         adj_close_data = data['Close']
 
         # Berechnung der prozentualen Veränderung des Vortages
-        # Wir nehmen den vorletzten und letzten Handelstag aus den abgerufenen Daten
-        # (da end_date_month = today, ist der letzte verfügbare Handelstag der Vortag)
         if len(adj_close_data) < 2:
             print("Nicht genügend Handelstage in den abgerufenen Daten für die Berechnung der Veränderung.")
             return None, None, None
@@ -79,21 +77,27 @@ def get_dax_movers(num_movers=5):
         percentage_changes = ((yesterday_prices - day_before_yesterday_prices) / day_before_yesterday_prices) * 100
         percentage_changes = percentage_changes.dropna() # Entferne Ticker ohne Daten
 
-        # Sortieren für Top Gewinner und Verlierer
-        top_gainers = percentage_changes.nlargest(num_movers)
-        top_losers = percentage_changes.nsmallest(num_movers)
+        # NEU: Filterung in explizite Gewinner und Verlierer
+        # Verwende eine kleine Toleranz, um Rundungsfehler bei 0% zu vermeiden
+        tolerance = 1e-6 # 0.000001%
+
+        # Nur positive Veränderungen
+        actual_gainers = percentage_changes[percentage_changes > tolerance]
+        # Nur negative Veränderungen
+        actual_losers = percentage_changes[percentage_changes < -tolerance]
+
+        # Sortieren für Top Gewinner und Verlierer, begrenzt auf num_movers
+        top_gainers = actual_gainers.nlargest(num_movers)
+        top_losers = actual_losers.nsmallest(num_movers)
+
 
         # Historische Daten für die Monatsansicht für alle relevanten Mover
-        # Wir sammeln die Ticker der Mover
         mover_tickers = top_gainers.index.tolist() + top_losers.index.tolist()
         mover_tickers = list(set(mover_tickers)) # Doppelte Ticker entfernen
 
         historical_data_for_charts = {}
         for ticker in mover_tickers:
-            # Wir extrahieren die letzten 30 Handelstage (Adjusted Close)
-            # Stellen Sie sicher, dass wir wirklich 30 Handelstage haben
             if ticker in adj_close_data.columns:
-                # Wir nehmen die letzten 30 verfügbaren Handelstage
                 historical_data_for_charts[ticker] = adj_close_data[ticker].tail(30)
             else:
                 print(f"Warnung: Daten für {ticker} nicht in den Hauptdaten gefunden.")
@@ -111,14 +115,23 @@ if __name__ == "__main__":
 
     if top_gainers is not None and top_losers is not None and historical_chart_data is not None:
         print("\n--- DAX Top 5 Gewinner vom Vortag ---")
-        print(top_gainers.to_string()) # to_string() für bessere Formatierung bei Pandas Series
+        if not top_gainers.empty:
+            print(top_gainers.to_string())
+        else:
+            print("Keine Top-Gewinner für den Vortag gefunden.")
 
         print("\n--- DAX Top 5 Verlierer vom Vortag ---")
-        print(top_losers.to_string())
+        if not top_losers.empty:
+            print(top_losers.to_string())
+        else:
+            print("Keine Top-Verlierer für den Vortag gefunden.")
 
         print("\n--- Historische Daten für Monatscharts der Mover ---")
-        for ticker, data in historical_chart_data.items():
-            print(f"\n{ticker} (letzte 30 Handelstage):")
-            print(data.to_string())
+        if historical_chart_data:
+            for ticker, data in historical_chart_data.items():
+                print(f"\n{ticker} (letzte 30 Handelstage):")
+                print(data.to_string())
+        else:
+            print("Keine historischen Daten für Mover verfügbar.")
     else:
         print("\nFehler bei der Ermittlung der Mover.")
