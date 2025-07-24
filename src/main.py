@@ -11,6 +11,9 @@ import sys
 # sind direkte Importe möglich.
 from dax_movers import get_dax_movers
 from chart_generator import create_30_day_chart
+# from video_maker import create_tiktok_video # moviepy importiert nicht mehr
+
+# Jetzt wird nur noch die Funktion importiert, die wir benötigen, nicht mehr MoviePy-spezifische Dinge
 from video_maker import create_tiktok_video
 
 # --- Konfiguration ---
@@ -87,6 +90,7 @@ def run_daily_process():
 
     # 3. Video generieren
     logging.info("Schritt 3: Video generieren...")
+    os.makedirs(VIDEOS_DIR, exist_ok=True) # Stellen Sie sicher, dass der Videos-Ordner existiert
     output_video_filename = os.path.join(VIDEOS_DIR, f"dax_top_movers_{current_date_str}.mp4")
 
     try:
@@ -99,7 +103,7 @@ def run_daily_process():
         )
         logging.info(f"TikTok-Video erfolgreich erstellt: {output_video_filename}")
     except FileNotFoundError as e:
-        logging.error(f"Fehler: Musikdatei oder FFmpeg/ImageMagick nicht gefunden. {e}")
+        logging.error(f"Fehler: Musikdatei oder FFmpeg nicht gefunden. {e}")
         logging.error("Stellen Sie sicher, dass FFmpeg korrekt installiert und im PATH ist, und die Musikdatei existiert.")
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler bei der Videogenerierung ist aufgetreten: {e}", exc_info=True)
