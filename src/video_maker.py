@@ -51,16 +51,19 @@ def create_tiktok_video(
         return
 
     # --- Intro-Clip erstellen ---
-    line1 = "DAX Top Mover"
-    line2 = f"of {datetime.now().strftime('%d.%m.%Y')}"
-    intro_duration_frames = int(3 * FPS)  # 3 Sekunden Intro
+    line1 = "Die 10 DAX Highlights des Tages!"
+    line2 = f"Ist ihr Portfolio betroffen?"
+    intro_duration_frames = int(2 * FPS)  # 2 Sekunden Intro
 
     # Schwarzer Hintergrund für das Intro
     intro_frame = np.zeros((VIDEO_HEIGHT, VIDEO_WIDTH, 3), dtype=np.uint8)
 
-    # Textgrößen berechnen
-    (text_w1, text_h1), _ = cv2.getTextSize(line1, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
-    (text_w2, text_h2), _ = cv2.getTextSize(line2, FONT, FONT_SCALE_TITLE * 0.8, THICKNESS)
+    # Einheitlicher Skalierungsfaktor für Intro-Text
+    FONT_SCALE_INTRO = FONT_SCALE_TITLE * 0.5
+
+    # Textgrößen berechnen mit korrektem Skalierungsfaktor
+    (text_w1, text_h1), _ = cv2.getTextSize(line1, FONT, FONT_SCALE_INTRO, THICKNESS)
+    (text_w2, text_h2), _ = cv2.getTextSize(line2, FONT, FONT_SCALE_INTRO, THICKNESS)
 
     # Abstand und Gesamthöhe
     line_spacing = int(text_h1 * 1.5)
@@ -71,16 +74,18 @@ def create_tiktok_video(
 
     # Positionen berechnen (horizontal zentriert)
     x1 = (VIDEO_WIDTH - text_w1) // 2
-    y1 = start_y + text_h1  # y-Koordinate ist bei Baseline, daher + text_h1
+    y1 = start_y + text_h1  # y-Koordinate ist bei Baseline
 
     x2 = (VIDEO_WIDTH - text_w2) // 2
     y2 = y1 + line_spacing
 
-    # Zeilen zeichnen
-    cv2.putText(intro_frame, line1, (x1, y1), FONT, FONT_SCALE_TITLE * 0.5, WHITE, THICKNESS, cv2.LINE_AA)
-    cv2.putText(intro_frame, line2, (x2, y2), FONT, FONT_SCALE_TITLE * 0.5, WHITE, THICKNESS, cv2.LINE_AA)
+    # Zeilen zeichnen mit identischem Skalierungsfaktor
+    cv2.putText(intro_frame, line1, (x1, y1), FONT, FONT_SCALE_INTRO, WHITE, THICKNESS, cv2.LINE_AA)
+    cv2.putText(intro_frame, line2, (x2, y2), FONT, FONT_SCALE_INTRO, WHITE, THICKNESS, cv2.LINE_AA)
+
     for _ in range(intro_duration_frames):
         out.write(intro_frame)
+
     logging.info("Intro-Clip hinzugefügt.")
 
     # --- Chart-Clips ---
@@ -209,12 +214,12 @@ def create_tiktok_video(
     except Exception as e:
         logging.warning(f"Konnte Hintergrundmusik nicht hinzufügen (anderer Fehler): {e}. Video wird ohne Musik erstellt.")
 
-    # Temporäre Videodatei ohne Audio löschen
-    # if os.path.exists(temp_video_filepath):
-    #     try:
-    #         os.remove(temp_video_filepath)
-    #         logging.info(f"Temporäre Datei gelöscht: {temp_video_filepath}")
-    #     except Exception as e:
-    #         logging.warning(f"Konnte temporäre Videodatei nicht löschen {temp_video_filepath}: {e}")
+    #Temporäre Videodatei ohne Audio löschen
+    if os.path.exists(temp_video_filepath):
+        try:
+            os.remove(temp_video_filepath)
+            logging.info(f"Temporäre Datei gelöscht: {temp_video_filepath}")
+        except Exception as e:
+            logging.warning(f"Konnte temporäre Videodatei nicht löschen {temp_video_filepath}: {e}")
 
     logging.info(f"Video-Export abgeschlossen: {output_filepath}")
