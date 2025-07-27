@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from datetime import datetime, timedelta
+from PIL import Image
 
 # Zuordnung Ticker → Unternehmensname (DAX 40)
 ticker_to_name = {
@@ -42,27 +43,24 @@ def create_30_day_chart(ticker: str, historical_data: pd.Series, percentage_chan
     # Plot vorbereiten
     fig, ax = plt.subplots(figsize=(1080/100, 1920/100), dpi=100)
     fig.patch.set_facecolor('black')
+    fig.patch.set_linewidth(4)        # Dicke des Rahmens
+    fig.patch.set_edgecolor('black')  # Rahmenfarbe schwarz
+    fig.patch.set_linestyle('solid')  # Rahmenstil
     ax.set_facecolor('black')
     ax.plot(df.index, df.values, color=line_color, linewidth=4)
 
-    # Linksbündig oben: 1. Zeile → Unternehmensname + Ticker
-    ax.text(0.01, 0.98, f"{company_name}  ({ticker})",
-    transform=ax.transAxes,
-    ha='left', va='top',
-    fontsize=42, color=line_color, weight='bold')
-
-    # Linksbündig darunter: 2. Zeile → prozentuale Veränderung
-    ax.text(0.01, 0.925, f"{change_text}",
-    transform=ax.transAxes,
-    ha='left', va='top',
-    fontsize=42, color=line_color, weight='bold')
+    # Linksbündiger Titel oberhalb des Diagramms
+    plt.suptitle(f"{company_name} ({ticker}) \n {change_text}",
+             fontsize=36, color=line_color, weight='bold',
+             ha='left', x=0.01, y=0.99)
 
 
-     # Achsen & Labels
-    ax.set_xlabel("Date", fontsize=14, color='white')
-    ax.set_ylabel("Price (EUR)", fontsize=14, color='white')
-    ax.tick_params(axis='x', colors='white', labelsize=12, width=2, length=6)  # Dickere Ticks
-    ax.tick_params(axis='y', colors='white', labelsize=12, width=2, length=6)  # Dickere Ticks
+
+    # Achsen & Labels
+    ax.set_xlabel("Date", fontsize=30, color='white')
+    ax.set_ylabel("Price (EUR)", fontsize=30, color='white')
+    ax.tick_params(axis='x', colors='white', labelsize=24, width=2, length=6)  # Dickere Ticks
+    ax.tick_params(axis='y', colors='white', labelsize=24, width=2, length=6)  # Dickere Ticks
 
     # Achsenlinien dicker machen
     ax.spines['bottom'].set_color('white')
@@ -74,7 +72,7 @@ def create_30_day_chart(ticker: str, historical_data: pd.Series, percentage_chan
     ax.spines['right'].set_color('black')   # Ausgeblendete rechte Achse bleibt schwarz
     ax.spines['right'].set_linewidth(0)
 
-    ax.grid(True, linestyle='--', alpha=0.2, color='white')
+    ax.grid(True, linestyle='--', alpha=0.3, color='white')
 
     # X-Ticks reduzieren
     num_ticks = 5
@@ -91,9 +89,26 @@ def create_30_day_chart(ticker: str, historical_data: pd.Series, percentage_chan
 
     plt.tight_layout()
     safe_ticker = ticker.replace(".DE", "").replace(".DEX", "").replace("^", "")
-    filename = os.path.join(output_dir, f"{safe_ticker}_30_day_chart.png")
+    filename = os.path.join(output_dir, f"{safe_ticker}_30_day_temp_chart.png")
     plt.savefig(filename, facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    print(f"Chart für {company_name} gespeichert unter: {filename}")
-    return filename
+    # Schwarzes Hintergrundbild mit Rahmen (1280x2120)
+    background_width = 1080 + 2 * 100  # = 1280
+    background_height = 1920 + 2 * 100  # = 2120
+    background = Image.new("RGB", (background_width, background_height), "black")
+
+    chart_img = Image.open(filename).convert("RGBA")
+
+    # Position für zentriertes Einfügen
+    x = (background_width - chart_img.width) // 2
+    y = (background_height - chart_img.height) // 2
+
+    background.paste(chart_img, (x, y), chart_img)
+
+    filename_f = os.path.join(output_dir, f"{safe_ticker}_30_day_chart.png")
+    background.save(filename_f)
+    os.remove(filename)
+
+    print(f"Chart für {company_name} gespeichert unter: {filename_f}")
+    return filename_f
