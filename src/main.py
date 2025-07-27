@@ -20,7 +20,7 @@ MUSIC_DIR = os.path.join(PROJECT_ROOT, "music")
 LOGS_DIR = os.path.join(PROJECT_ROOT, "logs")
 
 BACKGROUND_MUSIC_FILE = os.path.join(MUSIC_DIR, "background_music.mp3")
-VIDEO_DURATION_PER_CHART = 4 # Sekunden pro Chart
+VIDEO_DURATION_PER_CHART = 2 # Sekunden pro Chart
 
 # --- Logging Konfiguration ---
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -47,7 +47,7 @@ def run_daily_process():
         logging.error("Fehler beim Abrufen der DAX Mover-Daten. Prozess abgebrochen.")
         return
 
-    # NEU: Erstelle eine geordnete Liste von Movern, die zuerst Gewinner und dann Verlierer enthält.
+    # Erstelle eine geordnete Liste von Movern, die zuerst Gewinner und dann Verlierer enthält.
     # Dies stellt die Reihenfolge der Charts im Video sicher.
     ordered_movers_for_charts = []
     # Außerdem ein Dictionary für video_maker, das die Infos für die Overlays bereitstellt.
@@ -71,7 +71,6 @@ def run_daily_process():
     logging.info("Schritt 2: Charts generieren...")
     generated_chart_files = []
 
-    # Iteriere über die geordnete Liste, um die Charts in der gewünschten Reihenfolge zu erstellen
     for ticker, percentage_change, mover_type in ordered_movers_for_charts:
         if ticker in historical_chart_data:
             try:
@@ -90,7 +89,18 @@ def run_daily_process():
     # 3. Video generieren
     logging.info("Schritt 3: Video generieren...")
     os.makedirs(VIDEOS_DIR, exist_ok=True)
-    output_video_filename = os.path.join(VIDEOS_DIR, f"dax_top_movers_{current_date_str}.mp4")
+
+    # Basis-Dateiname im Format "yyyy-mm-dd-TikTok.mp4"
+    base_filename = f"{current_date_str}-TikTok.mp4"
+    output_video_filename = os.path.join(VIDEOS_DIR, base_filename)
+
+    # Überprüfen, ob die Datei bereits existiert und einen Zeitstempel hinzufügen
+    # Dies verhindert das Überschreiben bei mehrmaligem Ausführen am selben Tag
+    if os.path.exists(output_video_filename):
+        timestamp_suffix = datetime.now().strftime("_%H%M%S")
+        name_part, ext_part = os.path.splitext(base_filename)
+        output_video_filename = os.path.join(VIDEOS_DIR, f"{name_part}{timestamp_suffix}{ext_part}")
+        logging.warning(f"Video für {current_date_str} existiert bereits. Speichere unter neuem Namen: {output_video_filename}")
 
     try:
         create_tiktok_video(
@@ -98,7 +108,7 @@ def run_daily_process():
             output_filepath=output_video_filename,
             background_music_path=BACKGROUND_MUSIC_FILE,
             chart_display_duration=VIDEO_DURATION_PER_CHART,
-            movers_info=movers_info_for_video_maker # Übergabe des Dictionaries für Text-Overlays
+            movers_info=movers_info_for_video_maker
         )
         logging.info(f"TikTok-Video erfolgreich erstellt: {output_video_filename}")
     except FileNotFoundError as e:
