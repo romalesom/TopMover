@@ -52,7 +52,7 @@ def create_tiktok_video(
 
     # --- Intro-Clip erstellen ---
     line1 = "Die 10 DAX Highlights des Tages!"
-    line2 = f"Ist ihr Portfolio betroffen?"
+    line2 = f"{datetime.now().strftime('%d.%m.%Y')}"
     intro_duration_frames = int(2 * FPS)  # 2 Sekunden Intro
 
     # Schwarzer Hintergrund für das Intro
